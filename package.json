@@ -9,7 +9,7 @@
     "node": "^19.6.1"
   },
   "scripts": {
-    "start": "node server.js"
+     "start": "node server.js"
   },
   "name": "coinsaver-backend",
   "description": "��#\u0000 \u0000d\u0000e\u0000m\u0000o\u0000\r\u0000 \u0000#\u0000 \u0000c\u0000o\u0000i\u0000n\u0000_\u0000B\u0000o\u0000o\u0000k\u0000_\u0000A\u0000p\u0000p\u0000_\u0000B\u0000a\u0000c\u0000k\u0000e\u0000n\u0000d\u0000_\u0000C\u0000o\u0000d\u0000e\u0000s\u0000\r\u0000 \u0000",

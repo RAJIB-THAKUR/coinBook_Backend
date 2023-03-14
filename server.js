@@ -1,7 +1,7 @@
 //----------------------------BACKEND SERVER--------------------------
 
 const express = require("express");
-const cors = require("cors");
+const cors = require("cors") ; 
 
 //Connect To Database
 const connect_MongoDB = require("./connectDB");
