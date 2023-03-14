@@ -37,7 +37,9 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ status: 400, error: errors.array()[0].msg  });
+      return res
+        .status(400)
+        .json({ status: 400, error: errors.array()[0].msg });
     }
     const { name, email, mobile, password } = req.body;
 
@@ -47,7 +49,7 @@ router.post(
       if (oldUser) {
         return res.status(400).json({
           status: 400,
-          error:"User Already Exists with this email" ,
+          error: "User Already Exists with this email",
         });
       }
       const salt = await bcrypt.genSalt(10);
@@ -115,7 +117,7 @@ router.post(
         });
       }
     }
-    res.json({ status: 400, error: "Invalid Password"});
+    res.json({ status: 400, error: "Invalid Password" });
   }
 );
 
@@ -911,6 +913,7 @@ router.post(
     res.send({ message: "Successfully Stored" });
   }
 );
+
 
 //Using .exec/callback to solve toArray() function issue
 
