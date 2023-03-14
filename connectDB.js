@@ -4,7 +4,7 @@ mongoose.set("strictQuery", false);
 //Function to Connect MongoDB
 const connect_MongoDB = () =>
   mongoose
-    .connect("mongodb://localhost:27017/myCoinSaverDB", {
+    .connect("mongodb+srv://rajibthakur:rajibthakur@cluster0.zd9jgxo.mongodb.net/test", {
       useNewUrlParser: true,
     })
     .then(() => {

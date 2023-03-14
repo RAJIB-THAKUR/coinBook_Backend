@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const ObjectId = require("mongodb").ObjectID;
-const multer = require("multer");
-const upload = multer({ dest: "uploads/" });
+// const multer = require("multer");
+// const upload = multer({ dest: "uploads/" });
 
 // const User = require("../models/user_Model");
 const User = require("../models/user_Model_Updated");
@@ -868,51 +868,6 @@ router.post("/add_User_Expense_Type", async (req, res) => {
     });
   }
 });
-
-//----------------IN-PROGRESS--------------
-
-//ROUTE-:Add Profile Picture of user
-router.post("/add_User_Profile_Picture", async (req, res) => {
-  const { prof_Pic } = req.body;
-
-  function convertToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const fileReader = new window.FileReader();
-      //Converts into Base64 Format
-      fileReader.readAsDataURL(file);
-      fileReader.onload = () => {
-        resolve(fileReader.result);
-      };
-      fileReader.onerror = (error) => {
-        reject(error);
-      };
-    });
-  }
-  const prof_Pic_Base64 = convertToBase64(prof_Pic);
-  console.log("Hi", prof_Pic_Base64);
-  // try {
-  //   await User.create({
-  //     prof_Pic_Base64,
-  //   });
-  //   res.send({ message: "Successfully Stored" });
-  // } catch (error) {
-  //   console.log(error);
-  //   res.status(500).send({
-  //     status: 500,
-  //     error: error.msg,
-  //   });
-  // }
-});
-
-//ROUTE-:Add Profile Picture of user
-router.post(
-  "/add_User_Profile_Picture_Multer",
-  upload.single("profilePicture"),
-  async (req, res) => {
-    console.log(req.file);
-    res.send({ message: "Successfully Stored" });
-  }
-);
 
 
 //Using .exec/callback to solve toArray() function issue
