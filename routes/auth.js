@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const ObjectId = require("mongodb").ObjectId;
-const res_Status=false;
+const res_Status = false;
 //For latest mongoose version ^7.0.2
 // const ObjectId = require('mongoose').Types.ObjectId;
 
@@ -37,10 +37,7 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      
-      return res
-        .status(400)
-        .json({ res_Status, error: errors.array()[0].msg });
+      return res.status(400).json({ res_Status, error: errors.array()[0].msg });
     }
     const { name, email, mobile, password } = req.body;
 
@@ -61,10 +58,10 @@ router.post(
         mobile,
         password: encryptedPassword,
       });
-      res.status(200).send({ res_Status:true, message: "User Registered" });
+      res.status(200).json({ res_Status: true, message: "User Registered" });
     } catch (error) {
       // console.log(error);
-      res.status(500).send({
+      res.status(500).json({
         res_Status,
         error: "Couldn't sign up\nSOMETHING WENT WRONG\nInternal Server Error",
         message: error.message,
@@ -85,9 +82,7 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res
-        .status(400)
-        .json({ status: 400, error: errors.array()[0].msg });
+      return res.status(400).json({ res_Status, error: errors.array()[0].msg });
     }
     const { email, password } = req.body;
 
@@ -95,7 +90,7 @@ router.post(
 
     if (!user) {
       return res.status(400).json({
-        status: 400,
+        res_Status,
         error: "User Not Found \nGet yourself Registered first",
       });
     }
@@ -104,15 +99,19 @@ router.post(
       // console.log(token);
 
       if (res.status(201)) {
-        return res.json({ status: 201, data: token });
+        return res.json({
+          res_Status: true,
+          authtoken: token,
+          message: "Successfully Logged In",
+        });
       } else {
         return res.json({
-          status: 400,
+          res_Status,
           error: "Some Error Ocurred\nTry Again",
         });
       }
     }
-    res.json({ status: 400, error: "Invalid Password" });
+    res.json({ res_Status, error: "Invalid Password" });
   }
 );
 
