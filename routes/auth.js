@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const ObjectId = require("mongodb").ObjectId;
+const res_Status=false;
 //For latest mongoose version ^7.0.2
 // const ObjectId = require('mongoose').Types.ObjectId;
 
@@ -36,9 +37,10 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      
       return res
         .status(400)
-        .json({ status: 400, error: errors.array()[0].msg });
+        .json({ res_Status, error: errors.array()[0].msg });
     }
     const { name, email, mobile, password } = req.body;
 
@@ -47,7 +49,7 @@ router.post(
 
       if (oldUser) {
         return res.status(400).json({
-          status: 400,
+          res_Status,
           error: "User Already Exists with this email",
         });
       }
@@ -59,11 +61,11 @@ router.post(
         mobile,
         password: encryptedPassword,
       });
-      res.send({ status: 200, message: "User Registered" });
+      res.status(200).send({ res_Status:true, message: "User Registered" });
     } catch (error) {
       // console.log(error);
       res.status(500).send({
-        status: 500,
+        res_Status,
         error: "Couldn't sign up\nSOMETHING WENT WRONG\nInternal Server Error",
         message: error.message,
       });
