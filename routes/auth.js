@@ -1,10 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const ObjectId = require("mongodb").ObjectID;
-// const multer = require("multer");
-// const upload = multer({ dest: "uploads/" });
+const ObjectId = require("mongodb").ObjectId;
+//For latest mongoose version ^7.0.2
+// const ObjectId = require('mongoose').Types.ObjectId;
 
-// const User = require("../models/user_Model");
 const User = require("../models/user_Model_Updated");
 
 //To Validate User-Inputs
@@ -54,7 +53,6 @@ router.post(
       }
       const salt = await bcrypt.genSalt(10);
       const encryptedPassword = await bcrypt.hash(password, salt);
-      //   const encryptedPassword = await bcrypt.hash(password, 10);
       await User.create({
         name,
         email,
@@ -63,10 +61,11 @@ router.post(
       });
       res.send({ status: 200, message: "User Registered" });
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       res.status(500).send({
         status: 500,
         error: "Couldn't sign up\nSOMETHING WENT WRONG\nInternal Server Error",
+        message: error.message,
       });
     }
   }
@@ -98,14 +97,9 @@ router.post(
         error: "User Not Found \nGet yourself Registered first",
       });
     }
-    // if ((await password) === user.password)
     if (await bcrypt.compare(password, user.password)) {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET);
       // console.log(token);
-
-      //Verification
-      // const verifiedData = jwt.verify(token, JWT_SECRET);
-      // console.log(verifiedData);
 
       if (res.status(201)) {
         return res.json({ status: 201, data: token });
@@ -113,7 +107,6 @@ router.post(
         return res.json({
           status: 400,
           error: "Some Error Ocurred\nTry Again",
-          // error: "Some Error Ocurred\nTry Again",
         });
       }
     }
@@ -125,10 +118,11 @@ router.post(
 router.post("/userData", async (req, res) => {
   const { token } = req.body;
   try {
-    console.log(token);
+    // console.log(token);
     // console.log(user);
+
     const _id = jwt.verify(token, JWT_SECRET)._id;
-    User.findOne({ _id: ObjectId(_id) })
+    User.findOne({ _id: new ObjectId(_id) })
       .then((data) => {
         res.send({ status: "ok", data: data });
       })
@@ -144,21 +138,19 @@ router.post("/userData", async (req, res) => {
 router.post("/add_User_Expense_Daily", async (req, res) => {
   try {
     const { token, year, month, day, field, value, info } = req.body;
-    // console.log(req.body);
     const _id = jwt.verify(token, JWT_SECRET)._id;
-    console.log(_id);
     User.findOne(
       {
-        _id: ObjectId(_id),
-        // email: email,
+        _id: new ObjectId(_id),
         details: { $elemMatch: { year: year, month: month, day: day } },
       },
       async (err, user) => {
         // console.log("2");
         // console.log(user);
+
         if (user) {
           // console.log("3");
-          console.log(user._id);
+          // console.log(user._id);
           User.updateOne(
             {
               _id: _id,
@@ -172,7 +164,7 @@ router.post("/add_User_Expense_Daily", async (req, res) => {
             async (error, ans) => {
               if (error) res.send(error);
               else {
-                console.log(ans);
+                // console.log(ans);
                 if (ans.modifiedCount === 1) {
                   res.send({ message: "successfully stored", ans });
                 }
@@ -197,7 +189,6 @@ router.post("/add_User_Expense_Daily", async (req, res) => {
               if (error) res.send(error);
               else {
                 // console.log("5");
-                console.log(ans);
                 if (ans.modifiedCount === 1) {
                   res.send({ message: "successfully stored", ans });
                 }
@@ -208,8 +199,8 @@ router.post("/add_User_Expense_Daily", async (req, res) => {
       }
     );
   } catch (error) {
-    console.log(error);
-    res.send({ error });
+    // console.log(error);
+    res.send({ error: error.message });
   }
 });
 
@@ -219,7 +210,7 @@ router.post("/fetch_User_Expense_Sum_Daily", async (req, res) => {
     const { token, year, month, day } = req.body;
     const _id = jwt.verify(token, JWT_SECRET)._id;
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       {
         $match: {
@@ -237,7 +228,7 @@ router.post("/fetch_User_Expense_Sum_Daily", async (req, res) => {
       },
     ]).exec((err, daily_Expense) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.setHeader("Content-Type", "application/json");
         res.send(JSON.stringify({ message: "Failure" }));
         res.sendStatus(500);
@@ -245,9 +236,9 @@ router.post("/fetch_User_Expense_Sum_Daily", async (req, res) => {
         res.send(daily_Expense);
       }
     });
-  } catch (err) {
-    // res.send(err);
-    console.log(err);
+  } catch (error) {
+    // console.log(err);
+    res.send({ error: error.message });
   }
 });
 
@@ -256,10 +247,10 @@ router.post("/fetch_User_Expense_Sum_Monthly", async (req, res) => {
   try {
     const { token, year, month } = req.body;
     const _id = jwt.verify(token, JWT_SECRET)._id;
-    console.log(_id);
-    // const email="shuvo123@gmail.com";
+    // console.log(_id);
+
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       { $match: { "details.year": year, "details.month": month } },
       { $unwind: "$details.expense" },
@@ -271,7 +262,7 @@ router.post("/fetch_User_Expense_Sum_Monthly", async (req, res) => {
       },
     ]).exec((err, monthly_Expense) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.setHeader("Content-Type", "application/json");
         res.send(JSON.stringify({ message: "Failure" }));
         res.sendStatus(500);
@@ -279,9 +270,9 @@ router.post("/fetch_User_Expense_Sum_Monthly", async (req, res) => {
         res.send(monthly_Expense);
       }
     });
-  } catch (err) {
-    // res.send(err);
-    console.log(err);
+  } catch (error) {
+    // console.log(err);
+    res.send({ error: error.message });
   }
 });
 
@@ -292,7 +283,7 @@ router.post("/fetch_User_Expense_Sum_Yearly", async (req, res) => {
     const _id = jwt.verify(token, JWT_SECRET)._id;
 
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       { $match: { "details.year": year } },
       { $unwind: "$details.expense" },
@@ -304,7 +295,7 @@ router.post("/fetch_User_Expense_Sum_Yearly", async (req, res) => {
       },
     ]).exec((err, yearly_Expense) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.setHeader("Content-Type", "application/json");
         res.send(JSON.stringify({ message: "Failure" }));
         res.sendStatus(500);
@@ -312,9 +303,9 @@ router.post("/fetch_User_Expense_Sum_Yearly", async (req, res) => {
         res.send(yearly_Expense);
       }
     });
-  } catch (err) {
-    // res.send(err);
-    console.log(err);
+  } catch (error) {
+    // console.log(error);
+    res.send({ error: error.message });
   }
 });
 
@@ -325,7 +316,7 @@ router.post("/fetch_User_Expense_Details_Daily", async (req, res) => {
     const _id = jwt.verify(token, JWT_SECRET)._id;
 
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       {
         $match: {
@@ -344,7 +335,7 @@ router.post("/fetch_User_Expense_Details_Daily", async (req, res) => {
       },
     ]).exec((err, daily_Expense) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.setHeader("Content-Type", "application/json");
         res.send(JSON.stringify({ message: "Failure" }));
         res.sendStatus(500);
@@ -352,9 +343,9 @@ router.post("/fetch_User_Expense_Details_Daily", async (req, res) => {
         res.send(daily_Expense);
       }
     });
-  } catch (err) {
-    // res.send(err);
-    console.log(err);
+  } catch (error) {
+    // console.log(error);
+    res.send({ error: error.message });
   }
 });
 
@@ -364,7 +355,7 @@ router.post("/fetch_User_Expense_Details_Monthly", async (req, res) => {
     const { token, year, month } = req.body;
     const _id = jwt.verify(token, JWT_SECRET)._id;
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       { $match: { "details.year": year, "details.month": month } },
       { $unwind: "$details.expense" },
@@ -391,9 +382,9 @@ router.post("/fetch_User_Expense_Details_Monthly", async (req, res) => {
     //     res.json(ans);
     //   } else res.send({ data: "no doc found" });
     // });
-  } catch (err) {
-    // res.send(err);
-    console.log(err);
+  } catch (error) {
+    // console.log(error);
+    res.send({ error: error.message });
   }
 });
 
@@ -403,7 +394,7 @@ router.post("/fetch_User_Expense_Details_Yearly", async (req, res) => {
     const { token, year } = req.body;
     const _id = jwt.verify(token, JWT_SECRET)._id;
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       { $match: { "details.year": year } },
       { $unwind: "$details.expense" },
@@ -416,7 +407,7 @@ router.post("/fetch_User_Expense_Details_Yearly", async (req, res) => {
       { $sort: { _id: 1 } },
     ]).exec((err, yearly_Expense) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.setHeader("Content-Type", "application/json");
         res.send(JSON.stringify({ message: "Failure" }));
         res.sendStatus(500);
@@ -437,7 +428,7 @@ router.post("/fetch_User_Expense_TypeWise_Monthly", async (req, res) => {
     const _id = jwt.verify(token, JWT_SECRET)._id;
 
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       { $match: { "details.year": year, "details.month": month } },
       { $unwind: "$details.expense" },
@@ -449,7 +440,7 @@ router.post("/fetch_User_Expense_TypeWise_Monthly", async (req, res) => {
       },
     ]).exec((err, monthly_Expense) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.setHeader("Content-Type", "application/json");
         res.send(JSON.stringify({ message: "Failure" }));
         res.sendStatus(500);
@@ -457,9 +448,9 @@ router.post("/fetch_User_Expense_TypeWise_Monthly", async (req, res) => {
         res.send(monthly_Expense);
       }
     });
-  } catch (err) {
-    // res.send(err);
-    console.log(err);
+  } catch (error) {
+    // console.log(error);
+    res.send({ error: error.message });
   }
 });
 
@@ -470,7 +461,7 @@ router.post("/fetch_User_Expense_TypeWise_Yearly", async (req, res) => {
     const _id = jwt.verify(token, JWT_SECRET)._id;
 
     const f = User.aggregate([
-      { $match: { _id: ObjectId(_id) } },
+      { $match: { _id: new ObjectId(_id) } },
       { $unwind: "$details" },
       { $match: { "details.year": year } },
       { $unwind: "$details.expense" },
@@ -482,7 +473,7 @@ router.post("/fetch_User_Expense_TypeWise_Yearly", async (req, res) => {
       },
     ]).exec((err, yearly_Expense) => {
       if (err) {
-        console.log(err);
+        // console.log(err);
         res.setHeader("Content-Type", "application/json");
         res.send(JSON.stringify({ message: "Failure" }));
         res.sendStatus(500);
@@ -491,7 +482,7 @@ router.post("/fetch_User_Expense_TypeWise_Yearly", async (req, res) => {
       }
     });
   } catch (err) {
-    // res.send(err);
+    res.send(err.message);
     console.log(err);
   }
 });
@@ -507,7 +498,7 @@ router.post("/update_Any_User_Expense_", async (req, res) => {
 
     User.updateOne(
       {
-        _id: ObjectId(_id),
+        _id: new ObjectId(_id),
       },
       {
         $set: {
@@ -518,8 +509,8 @@ router.post("/update_Any_User_Expense_", async (req, res) => {
       },
       {
         arrayFilters: [
-          { "i._id": ObjectId(date_id) },
-          { "j._id": ObjectId(expense_id) },
+          { "i._id": new ObjectId(date_id) },
+          { "j._id": new ObjectId(expense_id) },
         ],
       },
       async (error, ans) => {
@@ -554,12 +545,11 @@ router.post("/update_Any_User_Expense_", async (req, res) => {
 router.post("/delete_User_Expense", async (req, res) => {
   try {
     const { token, date_id, expense_id } = req.body;
-    // console.log(req.body);
     const _id = jwt.verify(token, JWT_SECRET)._id;
     // console.log(_id);
     User.updateOne(
       {
-        _id: ObjectId(_id),
+        _id: new ObjectId(_id),
       },
       {
         $pull: {
@@ -567,7 +557,7 @@ router.post("/delete_User_Expense", async (req, res) => {
         },
       },
       {
-        arrayFilters: [{ "i._id": ObjectId(date_id) }],
+        arrayFilters: [{ "i._id": new ObjectId(date_id) }],
       },
       async (error, ans) => {
         if (error)
@@ -586,8 +576,8 @@ router.post("/delete_User_Expense", async (req, res) => {
       }
     );
   } catch (error) {
-    console.log(error);
-    res.send({ error });
+    // console.log(error);
+    res.send({ error: error.message });
   }
 });
 
@@ -614,7 +604,7 @@ router.post(
       // console.log(_id);
 
       const user = await User.findOne(
-        { _id: ObjectId(_id) },
+        { _id: new ObjectId(_id) },
         { _id: 0, password: 1 }
       );
 
@@ -659,7 +649,7 @@ router.post(
       // console.log(_id);
 
       const user = await User.findOne(
-        { _id: ObjectId(_id) },
+        { _id: new ObjectId(_id) },
         { _id: 0, password: 1 }
       );
 
@@ -676,7 +666,7 @@ router.post(
 
       User.updateOne(
         {
-          _id: ObjectId(_id),
+          _id: new ObjectId(_id),
         },
         {
           password: encryptedPassword,
@@ -715,7 +705,7 @@ router.post("/fetch_User_Profile_Details", async (req, res) => {
     // console.log(user);
 
     User.findOne(
-      { _id: ObjectId(_id) },
+      { _id: new ObjectId(_id) },
       { _id: 0, name: 1, email: 1, mobile: 1, prof_Pic: 1 }
     )
       .then((data) => {
@@ -725,7 +715,7 @@ router.post("/fetch_User_Profile_Details", async (req, res) => {
         res.status(400).json({ message: "Error", data: error });
       });
   } catch (error) {
-    res.send({ message: "Some Internal Server Error", data: error.msg });
+    res.send({ message: "Some Internal Server Error", data: error.message });
   }
 });
 
@@ -775,7 +765,7 @@ router.post("/update_User_Profile_Details", async (req, res) => {
 
     User.updateOne(
       {
-        _id: ObjectId(_id),
+        _id: new ObjectId(_id),
       },
       {
         name: name,
@@ -821,7 +811,7 @@ router.post("/add_User_Expense_Type", async (req, res) => {
 
     User.findOne(
       {
-        _id: ObjectId(_id),
+        _id: new ObjectId(_id),
         expense_Type_List: { $elemMatch: { expense_Type: expense_Type } },
       },
       async (err, user) => {
@@ -864,11 +854,10 @@ router.post("/add_User_Expense_Type", async (req, res) => {
     res.status(400).json({
       message:
         "Expense Type Could not be Updated\nSome technical error occurred",
-      error: error.msg,
+      error: error.message,
     });
   }
 });
-
 
 //Using .exec/callback to solve toArray() function issue
 
