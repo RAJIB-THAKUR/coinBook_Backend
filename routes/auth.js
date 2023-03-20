@@ -867,7 +867,7 @@ router.post("/fetch_User_Expense_Types", async (req, res) => {
     const _id = jwt.verify(token, JWT_SECRET)._id;
 
     User.findOne(
-      { _id: ObjectId(_id) },
+      { _id: new ObjectId(_id) },
       { _id: 0, "expense_Type_List.expense_Type": 1 }
     )
       .then((data) => {
