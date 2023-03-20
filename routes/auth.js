@@ -860,6 +860,27 @@ router.post("/add_User_Expense_Type", async (req, res) => {
   }
 });
 
+//ROUTE-20:Fetch User Expense Types
+router.post("/fetch_User_Expense_Types", async (req, res) => {
+  const { token } = req.body;
+  try {
+    const _id = jwt.verify(token, JWT_SECRET)._id;
+
+    User.findOne(
+      { _id: ObjectId(_id) },
+      { _id: 0, "expense_Type_List.expense_Type": 1 }
+    )
+      .then((data) => {
+        res.status(200).json({ message: "ok", data: data });
+      })
+      .catch((error) => {
+        res.status(400).json({ message: "Error", data: error.message });
+      });
+  } catch (error) {
+    res.send({ message: "Some Internal Server Error", data: error.message });
+  }
+});
+
 //Using .exec/callback to solve toArray() function issue
 
 module.exports = router;
