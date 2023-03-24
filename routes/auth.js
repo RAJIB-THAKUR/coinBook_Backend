@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const ObjectId = require("mongodb").ObjectId;
 const res_Status = false;
+const nodemailer = require("nodemailer");
+
 //For latest mongoose version ^7.0.2
 // const ObjectId = require('mongoose').Types.ObjectId;
 
@@ -880,6 +882,202 @@ router.post("/fetch_User_Expense_Types", async (req, res) => {
     res.send({ message: "Some Internal Server Error", data: error.message });
   }
 });
+
+//Route-21:OTP generation - Forgotten Password Feature
+router.post("/mail_OTP_Forgotten_Password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    User.findOne({ email: email }, async (err, user) => {
+      if (user) {
+        const otp = `${Math.floor(1000 + Math.random() * 9000)}`;
+        const salt = await bcrypt.genSalt(10);
+        const encryptedOTP = await bcrypt.hash(otp, salt);
+        const msg = {
+          from: "coinbook000@gmail.com",
+          to: email,
+          subject: `${otp} is your CoinBook account recovery code`,
+          // text: "Tui ekta naj",
+          html: `
+          <p>
+            Hiii ${email},
+            <br><br>
+            We received a request to reset your CoinBook account's password.
+            <br><br>
+            Enter the following password reset code:
+            <br><br>
+            <b>${otp}</b>
+          </p>`,
+        };
+        nodemailer
+          .createTransport({
+            service: "gmail",
+            auth: {
+              user: "coinbook000@gmail.com",
+              pass: "ijgqlbrstzckxtgm",
+            },
+            port: 465,
+            host: "smtp.ethereal.email",
+          })
+          .sendMail(msg, (error) => {
+            if (error) {
+              res.status(400).json({ message: "Error", data: error.message });
+            } else {
+              // console.log(msg);
+              User.updateOne(
+                {
+                  email: email,
+                },
+                { $set: { otp: encryptedOTP } },
+                async (error, ans) => {
+                  if (error) {
+                    res
+                      .status(400)
+                      .json({ message: "Error", data: error.message });
+                  } else {
+                    if (ans.modifiedCount === 1) {
+                      const token = jwt.sign({ email: user.email }, JWT_SECRET);
+                      res.status(200).json({
+                        message: "ok",
+                        data: "Password Reset Code Successfully Sent to your Email ",
+                        token: token,
+                      });
+                    } else
+                      res.status(400).json({
+                        message: "Error",
+                        data: "Some Internal problem occured\nTry Again",
+                      });
+                  }
+                }
+              );
+            }
+          });
+      } else {
+        res.status(400).json({
+          message: "Error",
+          data: "This Email is not yet registered with CoinBook",
+        });
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ message: "Error", data: error.message });
+  }
+});
+
+//ROUTE-22:Verify User OTP - Forgotten Password Feature
+router.post(
+  "/verify_User_OTP_Forgotten_Password",
+  [
+    body("otp", "OTP Code must be of exactly 4 characters").isLength({
+      min: 4,
+      max: 4,
+    }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res
+          .status(400)
+          .json({ message: "Error", data: errors.array()[0].msg });
+      }
+      const { token, otp } = req.body;
+      const email = jwt.verify(token, JWT_SECRET).email;
+
+      const user = await User.findOne({ email: email }, { _id: 0, otp: 1 });
+
+      if (!user) {
+        return res.status(400).json({
+          message: "Error",
+          data: "This Email is not yet registered with CoinBook",
+        });
+      }
+      if (await bcrypt.compare(otp, user.otp)) {
+        return res.status(200).json({
+          message: "ok",
+          data: "OTP verified successfully",
+          token: token,
+        });
+      } else {
+        return res.status(400).json({
+          message: "Error",
+          data: "Incorrect OTP",
+        });
+      }
+    } catch (error) {
+      res.status(400).send({ message: "Error", data: error.message });
+    }
+  }
+);
+
+//ROUTE-23:Update User Password - Forgotten Password Feature
+router.post(
+  "/update_User_Password_Forgotten_Password",
+  [
+    body("new_Password", "Password must be of minimun 5 characters").isLength({
+      min: 5,
+    }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res
+          .status(400)
+          .json({ message: "Error", data: errors.array()[0].msg });
+      }
+
+      const { token, new_Password } = req.body;
+      const email = jwt.verify(token, JWT_SECRET).email;
+
+      const user = await User.findOne(
+        { email: email },
+        { _id: 0, password: 1 }
+      );
+
+      if (await bcrypt.compare(new_Password, user.password)) {
+        return res.status(400).json({
+          message: "Error",
+          data: "New Password and current password cannot be same\nEnter new password",
+        });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const encryptedPassword = await bcrypt.hash(new_Password, salt);
+
+      User.updateOne(
+        { email: email },
+        {
+          password: encryptedPassword,
+        },
+        async (error, ans) => {
+          if (error)
+            res.status(400).send({
+              message: "Could not Update Password",
+              data: error.message,
+            });
+          else {
+            if (ans.modifiedCount === 1) {
+              res.status(200).send({
+                message: "ok",
+                data: "Password Updated Successfully",
+                ans,
+              });
+            } else {
+              res.status(400).send({
+                message: "Error",
+                data: "Could not Update Password\nSome Error Occured",
+              });
+            }
+          }
+        }
+      );
+    } catch (error) {
+      res.status(400).send({ message: "Error", data: error.message });
+      // console.log(error);
+    }
+  }
+);
 
 //Using .exec/callback to solve toArray() function issue
 

@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const ObjectId = require("mongodb").ObjectID;
 
 const userSchema = new mongoose.Schema({
-  
   // _id: { type: ObjectId },
   name: {
     type: String,
@@ -54,6 +53,7 @@ const userSchema = new mongoose.Schema({
   ],
   prof_Pic: { type: String },
   expense_Type_List: [{ expense_Type: { type: String } }],
+  otp: { type: String },
 });
 
 const Expense = mongoose.model("expenses2", userSchema);
