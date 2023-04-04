@@ -895,7 +895,7 @@ router.post("/mail_OTP_Forgotten_Password", async (req, res) => {
         const msg = {
           from: "coinbook000@gmail.com",
           to: email,
-          subject: `${otp} is your CoinBook account recovery code`,
+          subject: `CoinBook account recovery code`,
           // text: "Tui ekta naj",
           html: `
           <p>
