@@ -1,10 +1,13 @@
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false); 
+const dotenv = require('dotenv'); 
+dotenv.config();
+const DB = process.env.DATABASE;
 
 //Function to Connect MongoDB
 const connect_MongoDB = () =>
   mongoose
-    .connect("mongodb+srv://rajibthakur:rajibthakur@cluster0.zd9jgxo.mongodb.net/coin_Book_App", {
+    .connect(DB, {
       useNewUrlParser: true,
     })
     .then(() => {

@@ -17,8 +17,7 @@ const bcrypt = require("bcryptjs");
 
 //To Generate tokens on user-login
 const jwt = require("jsonwebtoken");
-const JWT_SECRET =
-  "hvdvay6ert72839289()aiyg8t87qt72393293883uhefiuh78ttq3ifi78272jbkj?[]]pou89ywe";
+const JWT_SECRET =process.env.JWT_SECRET;
 
 //-------------------------------------ROUTES----------------------------
 
