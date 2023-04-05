@@ -17,7 +17,7 @@ const bcrypt = require("bcryptjs");
 
 //To Generate tokens on user-login
 const jwt = require("jsonwebtoken");
-const JWT_SECRET =process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 //-------------------------------------ROUTES----------------------------
 
@@ -28,9 +28,12 @@ router.post(
   [
     body("name", "Enter Valid Name").isLength({ min: 3 }),
     body("email", "Enter Valid Email").isEmail(),
-    body("mobile", "Enter Valid Phone Number").isLength({
-      min: 1,
-    }),
+    body("mobile", "Phone Number must be of 10 digits only")
+      .isMobilePhone()
+      .isLength({
+        min: 10,
+        max: 10,
+      }),
     body("password", "Password must be of minimun 5 characters").isLength({
       min: 5,
     }),
@@ -137,74 +140,94 @@ router.post("/userData", async (req, res) => {
 });
 
 //ROUTE-4:Add Expense for any day
-router.post("/add_User_Expense_Daily", async (req, res) => {
-  try {
-    const { token, year, month, day, field, value, info } = req.body;
-    const _id = jwt.verify(token, JWT_SECRET)._id;
-    User.findOne(
-      {
-        _id: new ObjectId(_id),
-        details: { $elemMatch: { year: year, month: month, day: day } },
-      },
-      async (err, user) => {
-        // console.log("2");
-        // console.log(user);
+router.post(
+  "/add_User_Expense_Daily",
+  [
+    body("field", "Expense Type Cannot be Empty").not().isEmpty().isLength({
+      min: 1,
+    }),
+    body("value", "Expense Value Cannot be Empty").not().isEmpty().isLength({
+      min: 1,
+    }),
+    body("info", "Expense Details must be of minimun 5 characters").isLength({
+      min: 5,
+    }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(400)
+        .json({ error: errors.array()[0].msg, message: errors.array()[0].msg });
+    }
+    try {
+      const { token, year, month, day, field, value, info } = req.body;
+      const _id = jwt.verify(token, JWT_SECRET)._id;
+      User.findOne(
+        {
+          _id: new ObjectId(_id),
+          details: { $elemMatch: { year: year, month: month, day: day } },
+        },
+        async (err, user) => {
+          // console.log("2");
+          // console.log(user);
 
-        if (user) {
-          // console.log("3");
-          // console.log(user._id);
-          User.updateOne(
-            {
-              _id: _id,
-              details: { $elemMatch: { year: year, month: month, day: day } },
-            },
-            {
-              $push: {
-                "details.$.expense": { type: field, val: value, info: info },
+          if (user) {
+            // console.log("3");
+            // console.log(user._id);
+            User.updateOne(
+              {
+                _id: _id,
+                details: { $elemMatch: { year: year, month: month, day: day } },
               },
-            },
-            async (error, ans) => {
-              if (error) res.send(error);
-              else {
-                // console.log(ans);
-                if (ans.modifiedCount === 1) {
-                  res.send({ message: "successfully stored", ans });
-                }
-              }
-            }
-          );
-        } else {
-          // console.log("4");
-          User.updateOne(
-            { _id: _id },
-            {
-              $push: {
-                details: {
-                  year: year,
-                  month: month,
-                  day: day,
-                  expense: [{ type: field, val: value, info: info }],
+              {
+                $push: {
+                  "details.$.expense": { type: field, val: value, info: info },
                 },
               },
-            },
-            async (error, ans) => {
-              if (error) res.send(error);
-              else {
-                // console.log("5");
-                if (ans.modifiedCount === 1) {
-                  res.send({ message: "successfully stored", ans });
+              async (error, ans) => {
+                if (error) res.send(error);
+                else {
+                  // console.log(ans);
+                  if (ans.modifiedCount === 1) {
+                    res.send({ message: "Successfully Added", ans });
+                  }
                 }
               }
-            }
-          );
+            );
+          } else {
+            // console.log("4");
+            User.updateOne(
+              { _id: _id },
+              {
+                $push: {
+                  details: {
+                    year: year,
+                    month: month,
+                    day: day,
+                    expense: [{ type: field, val: value, info: info }],
+                  },
+                },
+              },
+              async (error, ans) => {
+                if (error) res.send(error);
+                else {
+                  // console.log("5");
+                  if (ans.modifiedCount === 1) {
+                    res.send({ message: "successfully stored", ans });
+                  }
+                }
+              }
+            );
+          }
         }
-      }
-    );
-  } catch (error) {
-    // console.log(error);
-    res.send({ error: error.message });
+      );
+    } catch (error) {
+      // console.log(error);
+      res.send({ error: error.message });
+    }
   }
-});
+);
 
 //ROUTE-5:Fetch total expense for a day
 router.post("/fetch_User_Expense_Sum_Daily", async (req, res) => {
@@ -490,58 +513,82 @@ router.post("/fetch_User_Expense_TypeWise_Yearly", async (req, res) => {
 });
 
 //ROUTE-13:Update any particular Expense for any day
-router.post("/update_Any_User_Expense_", async (req, res) => {
-  try {
-    const { token, date_id, expense_id, new_field, new_value, new_info } =
-      req.body;
-    // console.log(req.body);
-    const _id = jwt.verify(token, JWT_SECRET)._id;
-    console.log(_id);
+router.post(
+  "/update_Any_User_Expense_",
+  [
+    body("new_field", "Expense Type Cannot be Empty").not().isEmpty(),
+    body("new_value", "Expense Value Cannot be Empty")
+      .not()
+      .isEmpty()
+      .isLength({
+        min: 1,
+      }),
+    body(
+      "new_info",
+      "Expense Details must be of minimun 5 characters"
+    ).isLength({
+      min: 5,
+    }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(400)
+        .json({ error: errors.array()[0].msg, message: errors.array()[0].msg });
+    }
+    try {
+      const { token, date_id, expense_id, new_field, new_value, new_info } =
+        req.body;
+      // console.log(req.body);
+      const _id = jwt.verify(token, JWT_SECRET)._id;
+      console.log(_id);
 
-    User.updateOne(
-      {
-        _id: new ObjectId(_id),
-      },
-      {
-        $set: {
-          "details.$[i].expense.$[j].val": new_value,
-          "details.$[i].expense.$[j].type": new_field,
-          "details.$[i].expense.$[j].info": new_info,
+      User.updateOne(
+        {
+          _id: new ObjectId(_id),
         },
-      },
-      {
-        arrayFilters: [
-          { "i._id": new ObjectId(date_id) },
-          { "j._id": new ObjectId(expense_id) },
-        ],
-      },
-      async (error, ans) => {
-        if (error) res.send(error);
-        else {
-          // console.log(ans);
-          if (ans.modifiedCount === 1) {
-            res.send({ message: "successfully stored", ans });
-          } else {
-            if (ans.matchedCount === 1) {
-              res.send({
-                message: "Kindly Provide Updated Expense Details",
-                ans,
-              });
+        {
+          $set: {
+            "details.$[i].expense.$[j].val": new_value,
+            "details.$[i].expense.$[j].type": new_field,
+            "details.$[i].expense.$[j].info": new_info,
+          },
+        },
+        {
+          arrayFilters: [
+            { "i._id": new ObjectId(date_id) },
+            { "j._id": new ObjectId(expense_id) },
+          ],
+        },
+        async (error, ans) => {
+          if (error) res.send(error);
+          else {
+            // console.log(ans);
+            if (ans.modifiedCount === 1) {
+              res.send({ message: "successfully stored", ans });
             } else {
-              res.send({ message: "Could not update", ans });
+              if (ans.matchedCount === 1) {
+                res.send({
+                  message: "Kindly Provide Updated Expense Details",
+                  ans,
+                });
+              } else {
+                res.send({ message: "Could not update", ans });
+              }
             }
           }
         }
-      }
-    );
-  } catch (error) {
-    // console.log(error);
-    res.send({
-      message: "Some Error Occured\nExpense not updated",
-      error: error.message,
-    });
+      );
+    } catch (error) {
+      // console.log(error);
+      res.send({
+        message: "Some Error Occured\nExpense not updated",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 //ROUTE-14:Delete Expense for any day
 router.post("/delete_User_Expense", async (req, res) => {
@@ -722,144 +769,179 @@ router.post("/fetch_User_Profile_Details", async (req, res) => {
 });
 
 //ROUTE-18:Update User Profile Details
-router.post("/update_User_Profile_Details", async (req, res) => {
-  try {
-    const { token, name, email, mobile, prof_Pic } = req.body;
-    const _id = jwt.verify(token, JWT_SECRET)._id;
-
-    const user = await User.findOne(
-      {
-        email: email,
-      },
-      { _id: 1, email: 1 }
-    );
-    if (user) {
-      //Check if new-email is registered with some other user
-      if (user._id.toString() !== _id) {
-        // console.log(user._id.toString() !== _id);
-        // console.log(typeof _id);
-        // console.log(typeof user._id.toString());
-        // console.log(user._id.toString());
-        // console.log(_id);
-
-        return res.status(400).json({
-          status: 400,
-          message: "Some Other User Already Exists with this email",
-        });
-      }
+router.post(
+  "/update_User_Profile_Details",
+  [
+    body("name", "Enter Valid Name").isLength({ min: 3 }),
+    body("email", "Enter Valid Email").isEmail(),
+    body("mobile", "Phone Number must be of 10 digits only")
+      .isMobilePhone()
+      .isLength({
+        min: 10,
+        max: 10,
+      }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(400)
+        .json({ message: errors.array()[0].msg, error: errors.array()[0].msg });
     }
+    try {
+      const { token, name, email, mobile, prof_Pic } = req.body;
+      const _id = jwt.verify(token, JWT_SECRET)._id;
 
-    const user2 = await User.findOne(
-      {
-        mobile: mobile,
-      },
-      { _id: 1, mobile: 1 }
-    );
-    if (user2) {
-      //Check if new-mobile is registered with some other user
-      if (user2._id.toString() !== _id) {
-        return res.status(400).json({
-          status: 400,
-          message: "Some Other User Already Exists with this mobile number",
-        });
+      const user = await User.findOne(
+        {
+          email: email,
+        },
+        { _id: 1, email: 1 }
+      );
+      if (user) {
+        //Check if new-email is registered with some other user
+        if (user._id.toString() !== _id) {
+          // console.log(user._id.toString() !== _id);
+          // console.log(typeof _id);
+          // console.log(typeof user._id.toString());
+          // console.log(user._id.toString());
+          // console.log(_id);
+
+          return res.status(400).json({
+            status: 400,
+            message: "Some Other User Already Exists with this email",
+          });
+        }
       }
-    }
 
-    User.updateOne(
-      {
-        _id: new ObjectId(_id),
-      },
-      {
-        name: name,
-        email: email,
-        mobile: mobile,
-        prof_Pic: prof_Pic,
-      },
-      async (error, ans) => {
-        if (error) res.send(error);
-        else {
-          if (ans.modifiedCount === 1) {
-            res.send({ message: "Successfully Updated", ans });
-          } else {
-            if (ans.matchedCount === 1) {
-              res.send({
-                message: "Kindly Provide Updated Details",
-                ans,
-              });
+      const user2 = await User.findOne(
+        {
+          mobile: mobile,
+        },
+        { _id: 1, mobile: 1 }
+      );
+      if (user2) {
+        //Check if new-mobile is registered with some other user
+        if (user2._id.toString() !== _id) {
+          return res.status(400).json({
+            status: 400,
+            message: "Some Other User Already Exists with this mobile number",
+          });
+        }
+      }
+
+      User.updateOne(
+        {
+          _id: new ObjectId(_id),
+        },
+        {
+          name: name,
+          email: email,
+          mobile: mobile,
+          prof_Pic: prof_Pic,
+        },
+        async (error, ans) => {
+          if (error) res.send(error);
+          else {
+            if (ans.modifiedCount === 1) {
+              res.send({ message: "Successfully Updated", ans });
             } else {
-              res.send({
-                message:
-                  "Details Could not be Updated\nSome technical error occurred",
-                ans,
-              });
+              if (ans.matchedCount === 1) {
+                res.send({
+                  message: "Kindly Provide Updated Details",
+                  ans,
+                });
+              } else {
+                res.send({
+                  message:
+                    "Details Could not be Updated\nSome technical error occurred",
+                  ans,
+                });
+              }
             }
           }
         }
-      }
-    );
-  } catch (error) {
-    return res.json({
-      message: "Details Could not be Updated\nSome technical error occurred",
-      error: error.message,
-    });
+      );
+    } catch (error) {
+      return res.json({
+        message: "Details Could not be Updated\nSome technical error occurred",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 //ROUTE-19:Add Expense_Type for the user
-router.post("/add_User_Expense_Type", async (req, res) => {
-  try {
-    const { token, expense_Type } = req.body;
-    const _id = jwt.verify(token, JWT_SECRET)._id;
+router.post(
+  "/add_User_Expense_Type",
+  [
+    body("expense_Type", "Expense Type Cannot be Empty").isLength({
+      min: 1,
+    }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res
+        .status(400)
+        .json({ message: errors.array()[0].msg, error: errors.array()[0].msg });
+    }
+    try {
+      const { token, expense_Type } = req.body;
+      const _id = jwt.verify(token, JWT_SECRET)._id;
 
-    User.findOne(
-      {
-        _id: new ObjectId(_id),
-        expense_Type_List: { $elemMatch: { expense_Type: expense_Type } },
-      },
-      async (err, user) => {
-        if (user) {
-          res.status(400).json({ message: "This Expense Type Already Exists" });
-        } else {
-          User.updateOne(
-            {
-              _id: _id,
-            },
-            {
-              $push: {
-                expense_Type_List: { expense_Type: expense_Type },
+      User.findOne(
+        {
+          _id: new ObjectId(_id),
+          expense_Type_List: { $elemMatch: { expense_Type: expense_Type } },
+        },
+        async (err, user) => {
+          if (user) {
+            res
+              .status(400)
+              .json({ message: "This Expense Type Already Exists" });
+          } else {
+            User.updateOne(
+              {
+                _id: _id,
               },
-            },
-            async (error, ans) => {
-              if (error)
-                res.status(400).json({
-                  message: "Could not add due to some error",
-                  error: error.msg,
-                });
-              else {
-                if (ans.modifiedCount === 1) {
-                  res.status(200).json({
-                    message: "New Expense Type Successfully Added",
-                    ans,
+              {
+                $push: {
+                  expense_Type_List: { expense_Type: expense_Type },
+                },
+              },
+              async (error, ans) => {
+                if (error)
+                  res.status(400).json({
+                    message: "Could not add due to some error",
+                    error: error.msg,
                   });
-                } else {
-                  res
-                    .status(400)
-                    .json({ message: "Could not add due to some error" });
+                else {
+                  if (ans.modifiedCount === 1) {
+                    res.status(200).json({
+                      message: "New Expense Type Successfully Added",
+                      ans,
+                    });
+                  } else {
+                    res
+                      .status(400)
+                      .json({ message: "Could not add due to some error" });
+                  }
                 }
               }
-            }
-          );
+            );
+          }
         }
-      }
-    );
-  } catch (error) {
-    res.status(400).json({
-      message:
-        "Expense Type Could not be Updated\nSome technical error occurred",
-      error: error.message,
-    });
+      );
+    } catch (error) {
+      res.status(400).json({
+        message:
+          "Expense Type Could not be Updated\nSome technical error occurred",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 //ROUTE-20:Fetch User Expense Types
 router.post("/fetch_User_Expense_Types", async (req, res) => {
@@ -883,21 +965,31 @@ router.post("/fetch_User_Expense_Types", async (req, res) => {
 });
 
 //Route-21:OTP generation - Forgotten Password Feature
-router.post("/mail_OTP_Forgotten_Password", async (req, res) => {
-  try {
-    const { email } = req.body;
+router.post(
+  "/mail_OTP_Forgotten_Password",
+  [body("email", "Enter Valid Email").isEmail()],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: "Error",
+        data: errors.array()[0].msg,
+      });
+    }
+    try {
+      const { email } = req.body;
 
-    User.findOne({ email: email }, async (err, user) => {
-      if (user) {
-        const otp = `${Math.floor(1000 + Math.random() * 9000)}`;
-        const salt = await bcrypt.genSalt(10);
-        const encryptedOTP = await bcrypt.hash(otp, salt);
-        const msg = {
-          from: "coinbook000@gmail.com",
-          to: email,
-          subject: `CoinBook account recovery code`,
-          // text: "Tui ekta naj",
-          html: `
+      User.findOne({ email: email }, async (err, user) => {
+        if (user) {
+          const otp = `${Math.floor(1000 + Math.random() * 9000)}`;
+          const salt = await bcrypt.genSalt(10);
+          const encryptedOTP = await bcrypt.hash(otp, salt);
+          const msg = {
+            from: "coinbook000@gmail.com",
+            to: email,
+            subject: `CoinBook account recovery code`,
+            // text: "Tui ekta naj",
+            html: `
           <p>
             Hiii ${email},
             <br><br>
@@ -907,61 +999,65 @@ router.post("/mail_OTP_Forgotten_Password", async (req, res) => {
             <br><br>
             <b>${otp}</b>
           </p>`,
-        };
-        nodemailer
-          .createTransport({
-            service: "gmail",
-            auth: {
-              user: "coinbook000@gmail.com",
-              pass: "ijgqlbrstzckxtgm",
-            },
-            port: 465,
-            host: "smtp.ethereal.email",
-          })
-          .sendMail(msg, (error) => {
-            if (error) {
-              res.status(400).json({ message: "Error", data: error.message });
-            } else {
-              // console.log(msg);
-              User.updateOne(
-                {
-                  email: email,
-                },
-                { $set: { otp: encryptedOTP } },
-                async (error, ans) => {
-                  if (error) {
-                    res
-                      .status(400)
-                      .json({ message: "Error", data: error.message });
-                  } else {
-                    if (ans.modifiedCount === 1) {
-                      const token = jwt.sign({ email: user.email }, JWT_SECRET);
-                      res.status(200).json({
-                        message: "ok",
-                        data: "Password Reset Code Successfully Sent to your Email ",
-                        token: token,
-                      });
-                    } else
-                      res.status(400).json({
-                        message: "Error",
-                        data: "Some Internal problem occured\nTry Again",
-                      });
+          };
+          nodemailer
+            .createTransport({
+              service: "gmail",
+              auth: {
+                user: "coinbook000@gmail.com",
+                pass: "ijgqlbrstzckxtgm",
+              },
+              port: 465,
+              host: "smtp.ethereal.email",
+            })
+            .sendMail(msg, (error) => {
+              if (error) {
+                res.status(400).json({ message: "Error", data: error.message });
+              } else {
+                // console.log(msg);
+                User.updateOne(
+                  {
+                    email: email,
+                  },
+                  { $set: { otp: encryptedOTP } },
+                  async (error, ans) => {
+                    if (error) {
+                      res
+                        .status(400)
+                        .json({ message: "Error", data: error.message });
+                    } else {
+                      if (ans.modifiedCount === 1) {
+                        const token = jwt.sign(
+                          { email: user.email },
+                          JWT_SECRET
+                        );
+                        res.status(200).json({
+                          message: "ok",
+                          data: "Password Reset Code Successfully Sent to your Email ",
+                          token: token,
+                        });
+                      } else
+                        res.status(400).json({
+                          message: "Error",
+                          data: "Some Internal problem occured\nTry Again",
+                        });
+                    }
                   }
-                }
-              );
-            }
+                );
+              }
+            });
+        } else {
+          res.status(400).json({
+            message: "Error",
+            data: "This Email is not yet registered with CoinBook",
           });
-      } else {
-        res.status(400).json({
-          message: "Error",
-          data: "This Email is not yet registered with CoinBook",
-        });
-      }
-    });
-  } catch (error) {
-    res.status(400).json({ message: "Error", data: error.message });
+        }
+      });
+    } catch (error) {
+      res.status(400).json({ message: "Error", data: error.message });
+    }
   }
-});
+);
 
 //ROUTE-22:Verify User OTP - Forgotten Password Feature
 router.post(
