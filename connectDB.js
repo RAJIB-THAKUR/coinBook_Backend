@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-mongoose.set("strictQuery", false); 
-const dotenv = require('dotenv'); 
+mongoose.set("strictQuery", false);
+const dotenv = require("dotenv");
 dotenv.config();
 const DB = process.env.DATABASE;
 
@@ -15,5 +15,4 @@ const connect_MongoDB = () =>
     })
     .catch((e) => console.log(e));
 
-    
 module.exports = connect_MongoDB;
