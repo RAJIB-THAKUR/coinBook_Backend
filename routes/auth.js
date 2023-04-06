@@ -149,9 +149,6 @@ router.post(
     body("value", "Expense Value Cannot be Empty").not().isEmpty().isLength({
       min: 1,
     }),
-    body("info", "Expense Details must be of minimun 5 characters").isLength({
-      min: 5,
-    }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -523,12 +520,6 @@ router.post(
       .isLength({
         min: 1,
       }),
-    body(
-      "new_info",
-      "Expense Details must be of minimun 5 characters"
-    ).isLength({
-      min: 5,
-    }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
