@@ -1,4 +1,10 @@
-﻿# coin_Book_App_Backend_Codes
+﻿# Coin_Book_App_Backend_Codes
+
+#Get to Know About Us & Our Work
+
+CoinBook is a web based application to track our daily life expenses in more disciplined and expressive manner. It is Developed using the demanding MERN Stack Technologies.
+
+--------------------------------------------------------------------------------------------------
 
 #This is the backend code for our app named "COIN-BOOK" build by our team of 3 members.
 
