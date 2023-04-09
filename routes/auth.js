@@ -976,7 +976,7 @@ router.post(
           const salt = await bcrypt.genSalt(10);
           const encryptedOTP = await bcrypt.hash(otp, salt);
           const msg = {
-            from: "coinbook000@gmail.com",
+            from: process.env.coinBook_Email_ID,
             to: email,
             subject: `CoinBook account recovery code`,
             // text: "Tui ekta naj",
@@ -995,8 +995,8 @@ router.post(
             .createTransport({
               service: "gmail",
               auth: {
-                user: "coinbook000@gmail.com",
-                pass: "ijgqlbrstzckxtgm",
+                user: process.env.coinBook_Email_ID,
+                pass: process.env.coinBook_Email_Pass,
               },
               port: 465,
               host: "smtp.ethereal.email",
